@@ -28,9 +28,7 @@ fn main() {
 
 		let player_list = players.players;
 
-		if true
-		/* player_list.iter().any(|x| x.name == name_to_check) */
-		{
+		if player_list.iter().any(|x| x.name == name_to_check) {
 			println!("{} IS IN SERVER", name_to_check);
 			play_sound_cue();
 		} else {
