@@ -18,7 +18,7 @@ fn main() {
 		.lock()
 		.read_line(&mut name_to_check)
 		.expect("Could not get input.");
-	name_to_check = name_to_check[..read].to_owned();
+	name_to_check = name_to_check[..read].replace("\r\n", "");
 
 	let client = A2SClient::new().expect("Could not start client.");
 	loop {
