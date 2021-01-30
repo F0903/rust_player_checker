@@ -1,24 +1,17 @@
+mod strutil;
+
 use a2s::A2SClient;
-use std::io::{stdin, stdout, BufRead, Write};
+use std::io::{stdin, stdout, BufRead, Read, Write};
+use strutil::Trimmable;
 use winapi::um::playsoundapi;
 
 //TODO: make own impl instead of lib?
 //for reference (rustification 2x duo): 51.195.130.177:28235
 fn main() {
-	let mut out = stdout();
-	out.lock()
-		.by_ref()
-		.write_all(b"Please enter the username to check for: ")
-		.expect("Could not write to stdout.");
-	out.flush().expect("Could not flush.");
-
+	let out = stdout();
 	let inp = stdin();
-	let mut name_to_check = String::new();
-	let read = inp
-		.lock()
-		.read_line(&mut name_to_check)
-		.expect("Could not get input.");
-	name_to_check = name_to_check[..read].replace("\r\n", "");
+	let mut name_to_check = get_user(inp.lock().by_ref(), out.lock().by_ref());
+	name_to_check.trim_newline();
 
 	let client = A2SClient::new().expect("Could not start client.");
 	loop {
@@ -36,6 +29,15 @@ fn main() {
 		}
 		std::thread::sleep(std::time::Duration::from_millis(30000));
 	}
+}
+
+fn get_user(inp: &mut impl BufRead, out: &mut impl Write) -> String {
+	out.write_all(b"Please enter the username to check for: ")
+		.expect("Could not write to stdout.");
+	out.flush().expect("Could not flush.");
+	let mut strbuf = String::new();
+	let read = inp.read_line(&mut strbuf).expect("Could not get input.");
+	strbuf[..read].to_owned()
 }
 
 #[cfg(windows)]
