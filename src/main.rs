@@ -1,10 +1,10 @@
-mod strutil;
+mod trimmable;
 
 use a2s::A2SClient;
 use std::io::{stdin, stdout, BufRead, Read, Write};
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
-use strutil::Trimmable;
+use trimmable::Trimmable;
 use winapi::um::playsoundapi;
 
 //TODO: Perhaps make own impl of Source Query, looks to be simple for this usecase.
