@@ -2,7 +2,7 @@ mod queryer;
 mod trimmable;
 
 use queryer::Queryer;
-use std::io::{stdin, stdout, BufRead, Read, Write};
+use std::io::{stdin, stdout, BufRead, Read, Result, Write};
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 use trimmable::Trimmable;
@@ -11,7 +11,7 @@ use winapi::um::playsoundapi;
 //TODO: Perhaps parse a config file, instead of asking for the ip and username evertime? Or instead use cmd-line args?
 
 //for reference (rustification 2x duo): 51.195.130.177:28235
-fn main() -> std::io::Result<()> {
+fn main() -> Result<()> {
 	let out = stdout();
 	let inp = stdin();
 
@@ -22,14 +22,28 @@ fn main() -> std::io::Result<()> {
 	let queryer = Queryer::new("192.168.1.2:0")?;
 	loop {
 		let players = queryer.get_players(&server)?;
-		if players.iter().any(|x| x.name == name_to_check) {
+		dump_to_file(&players)?;
+		if players
+			.iter()
+			.any(|x| x.get_name().unwrap() == name_to_check)
+		{
 			println!("{} IS IN SERVER", name_to_check);
 			play_alert();
 		} else {
 			println!("{} is not currently in server", name_to_check);
 		}
-		std::thread::sleep(std::time::Duration::from_millis(5000));
+		std::thread::sleep(std::time::Duration::from_millis(30000));
 	}
+}
+
+#[cfg(debug_assertions)]
+fn dump_to_file(list: &[impl std::fmt::Display]) -> Result<()> {
+	use std::fs;
+	let mut f = fs::File::create("./dbg_dump.txt")?;
+	list.iter().for_each(|x| {
+		writeln!(f, "{}", x);
+	});
+	Ok(())
 }
 
 fn get_server(inp: &mut impl BufRead, out: &mut impl Write) -> SocketAddr {

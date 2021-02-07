@@ -1,4 +1,5 @@
 use std::convert::TryInto;
+use std::ffi::CString;
 use std::io::Result;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::Duration;
@@ -9,17 +10,24 @@ const A2S_PLAYER_RESPONSE_HEADER: u8 = 0x44;
 const CHALLENGE_RESPONSE_HEADER: u8 = 0x41;
 
 pub struct Player {
-	pub name: String,
-	pub duration: Duration,
+	name: CString,
+	duration: Duration,
+}
+
+impl Player {
+	pub fn get_name(&self) -> Result<&str> {
+		let st = self.name.to_str().expect("Could not convert CStr to str.");
+		Ok(&st[..st.len() - 1])
+	}
 }
 
 use std::fmt::{self, Display, Formatter};
 impl Display for Player {
 	fn fmt(&self, form: &mut Formatter<'_>) -> fmt::Result {
 		form.write_str(&format!(
-			"{} [{}h]",
-			&self.name,
-			self.duration.as_secs() / 60 / 60
+			"{} [{}min]",
+			self.get_name().unwrap(),
+			self.duration.as_secs() / 60
 		))?;
 		Ok(())
 	}
@@ -36,10 +44,9 @@ impl Queryer {
 	}
 
 	fn get_challenge_num(&self, header: u8, server_addr: &SocketAddr) -> Result<i32> {
-		let mut packet = vec![255, 255, 255, 255]; //Seems like they all start with this for some reason?
+		let mut packet = vec![255, 255, 255, 255]; // Needs these 4 bytes for some reason.
 		packet.push(header);
 		packet.extend_from_slice(&(-1i32).to_le_bytes());
-		println!("packet {:x?}", packet);
 		self.udp
 			.send_to(&packet, server_addr)
 			.expect("Could not send packet.");
@@ -54,8 +61,6 @@ impl Queryer {
 				if read < 1 {
 					panic!("Read was less than 1.");
 				}
-
-				println!("Received packet: {:x?}", &buf[..read]);
 
 				//Ignore first 4 bytes.
 				let header = u8::from_le_bytes(
@@ -72,7 +77,6 @@ impl Queryer {
 						.try_into()
 						.expect("Could not convert slice to array."),
 				);
-				println!("Received challenge num: {}", chall_num);
 				return Ok(chall_num);
 			} else {
 				panic!("Error occurred while receiving packet.");
@@ -87,7 +91,6 @@ impl Queryer {
 		let mut packet = vec![255, 255, 255, 255];
 		packet.push(A2S_PLAYER_HEADER);
 		packet.extend_from_slice(&challenge_num.to_le_bytes());
-		println!("\nSending packet: {:x?}", packet);
 		self.udp
 			.send_to(&packet, server_addr)
 			.expect("Could not send.");
@@ -120,18 +123,16 @@ impl Queryer {
 
 					let name_offset = index_offset + index_length;
 
-					let mut name = String::with_capacity(15);
-					let mut name_length = 0; // Use this instead of String.len() due to issues with special characters.
-					for (i, cha) in buf[name_offset..].iter().enumerate() {
-						name.push(*cha as char);
+					let mut name = Vec::<u8>::with_capacity(15);
+					for cha in buf[name_offset..].iter() {
+						name.push(*cha);
 						if cha == &b'\0' {
-							name_length = i + 1;
 							break;
 						}
 					}
 
 					// Ignore score.
-					let score_offset = name_offset + name_length;
+					let score_offset = name_offset + name.len();
 					let score_length = 4;
 
 					let duration_offset = score_offset + score_length;
@@ -141,9 +142,11 @@ impl Queryer {
 							.try_into()
 							.unwrap(),
 					);
+
 					player_offset = duration_offset + duration_length;
+
 					players.push(Player {
-						name,
+						name: unsafe { CString::from_vec_unchecked(name) },
 						duration: Duration::from_secs_f32(duration),
 					});
 				}
