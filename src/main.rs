@@ -1,17 +1,17 @@
+mod queryer;
 mod trimmable;
 
-use a2s::A2SClient;
+use queryer::Queryer;
 use std::io::{stdin, stdout, BufRead, Read, Write};
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 use trimmable::Trimmable;
 use winapi::um::playsoundapi;
 
-//TODO: Perhaps make own impl of Source Query, looks to be simple for this usecase.
 //TODO: Perhaps parse a config file, instead of asking for the ip and username evertime? Or instead use cmd-line args?
 
 //for reference (rustification 2x duo): 51.195.130.177:28235
-fn main() {
+fn main() -> std::io::Result<()> {
 	let out = stdout();
 	let inp = stdin();
 
@@ -19,19 +19,16 @@ fn main() {
 	let mut name_to_check = get_user(inp.lock().by_ref(), out.lock().by_ref());
 	name_to_check.trim_newline();
 
-	let client = A2SClient::new().expect("Could not start client.");
+	let queryer = Queryer::new("192.168.1.2:0")?;
 	loop {
-		let players = client.players(server).expect("Could not get players.");
-
-		let player_list = players.players;
-
-		if player_list.iter().any(|x| x.name == name_to_check) {
+		let players = queryer.get_players(&server)?;
+		if players.iter().any(|x| x.name == name_to_check) {
 			println!("{} IS IN SERVER", name_to_check);
-			play_sound_cue();
+			play_alert();
 		} else {
 			println!("{} is not currently in server", name_to_check);
 		}
-		std::thread::sleep(std::time::Duration::from_millis(30000));
+		std::thread::sleep(std::time::Duration::from_millis(5000));
 	}
 }
 
@@ -68,7 +65,7 @@ fn get_user(inp: &mut impl BufRead, out: &mut impl Write) -> String {
 }
 
 #[cfg(windows)]
-fn play_sound_cue() {
+fn play_alert() {
 	let bytes = include_bytes!("../media/alert.wav");
 	unsafe {
 		playsoundapi::PlaySoundA(
