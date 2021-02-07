@@ -1,1 +1,9 @@
+# VS Code
+.vscode/
+
+# Rust
+Cargo.lock
 /target
+
+# Custom
+dbg_dump.txt
