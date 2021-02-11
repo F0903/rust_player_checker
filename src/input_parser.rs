@@ -11,10 +11,8 @@ pub fn parse_input_args(
 	let mut strbuf = String::with_capacity(10);
 	let read = inp.read_line(&mut strbuf)?;
 	let input = &strbuf[..read];
-	let mut has_executed = false;
 	for (args, func) in funcs {
-		// If we have executed, just ignore the default (if specified)
-		if args[0] == "" && has_executed {
+		if args[0] == "" {
 			continue;
 		}
 
@@ -57,8 +55,11 @@ pub fn parse_input_args(
 
 			vals.push(&val[start..end]);
 		}
-		has_executed = true;
 		func(&queryer, &vals)?;
+		return Ok(());
 	}
-	Ok(())
+	Err(Error::new(
+		ErrorKind::InvalidInput,
+		"Command not recognized.",
+	))
 }

@@ -10,10 +10,12 @@ use std::io::{stdin, stdout, Result, Write};
 use std::net::ToSocketAddrs;
 use winapi::um::playsoundapi;
 
+const START_MSG: &str = "Rust Player Checker v0.4";
+
 //for reference (rustification 2x duo): 51.195.130.177:28235
 fn main() -> Result<()> {
+	println!("{}", START_MSG);
 	loop {
-		println!("Rust Player Checker v0.4");
 		let cmd_result = parse_input_args(
 			stdin().lock(),
 			Queryer::new("192.168.1.2:0")?,
@@ -35,13 +37,13 @@ fn main() -> Result<()> {
 					players.iter().for_each(|p| println!("{}", p));
 					Ok(())
 				}),
-				(&["", "-s", "-u"], |query, x| {
+				(&["--listen", "-u"], |query, x| {
 					let server = x[0]
 						.to_socket_addrs()?
 						.next()
 						.expect("Ip could not be parsed.");
 					let name = x[1];
-					println!("Waiting for \"{}\" to join...", name);
+					println!("Listening for \"{}\"...", name);
 					//TODO: Make it possible to stop listening for a player by pressing a key or typing something.
 					loop {
 						let players = query.get_players(&server)?;
@@ -57,13 +59,11 @@ fn main() -> Result<()> {
 		);
 		if let Err(err) = cmd_result {
 			let clear_timer = std::time::Duration::from_secs(5);
-			println!(
-				"Error encountered: {}\nClearing in {:?}...",
-				err, clear_timer
-			);
+			println!("{}\nClearing in {:?}...", err, clear_timer);
 			std::thread::sleep(clear_timer);
 			print!("\x1B[2J\x1B[1;1H"); //Clear terminal and set cursor to start.
 			stdout().flush().unwrap();
+			println!("{}", START_MSG);
 		}
 	}
 }
