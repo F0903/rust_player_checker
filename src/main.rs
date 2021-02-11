@@ -46,10 +46,13 @@ fn main() -> Result<()> {
 	Ok(())
 }
 
+type IoTuple<'a, I: BufRead, O: Write> = (&'a mut I, &'a mut O);
+type CallbackFunc<I: BufRead, O: Write> = fn(&mut IoTuple<I, O>, &Queryer, &[&str]);
+
 fn parse_input_args<I: BufRead, O: Write>(
-	mut io: (&mut I, &mut O),
+	mut io: IoTuple<I, O>,
 	queryer: Queryer,
-	funcs: &[(&[&str], fn(&mut (&mut I, &mut O), &Queryer, &[&str]))],
+	funcs: &[(&[&str], CallbackFunc<I, O>)],
 ) -> Result<()> {
 	let mut strbuf = String::with_capacity(10);
 	let read = io.0.read_line(&mut strbuf)?;
