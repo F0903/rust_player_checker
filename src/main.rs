@@ -29,7 +29,7 @@ fn main() -> Result<()> {
 			(&["", "-s", "-u"], |_io, query, x| {
 				let server = str_to_socket_addr(x[0]);
 				let name = x[1];
-				println!("Starting search for \"{}\"...", name);
+				println!("Waiting for \"{}\" to join...", name);
 				loop {
 					let players = query.get_players(&server).unwrap();
 					dump_to_file(&players).unwrap();

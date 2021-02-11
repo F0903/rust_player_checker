@@ -95,9 +95,10 @@ impl Queryer {
 			.send_to(&packet, server_addr)
 			.expect("Could not send.");
 
-		let mut buf = [0; 1400];
+		let mut buf = [0; 10 * 1024];
 		loop {
-			if let Ok((read, addr)) = self.udp.recv_from(&mut buf) {
+			let res = self.udp.recv_from(&mut buf);
+			if let Ok((read, addr)) = res {
 				if addr != *server_addr {
 					println!("Received packet from unknown server.");
 					continue;
@@ -152,7 +153,10 @@ impl Queryer {
 				}
 				return Ok(players);
 			} else {
-				panic!("Error occurred during A2S_PLAYERS response.");
+				panic!(
+					"Error occurred during A2S_PLAYERS response.\n {}",
+					res.unwrap_err()
+				);
 			}
 		}
 	}
