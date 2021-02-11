@@ -1,101 +1,71 @@
 mod ignoreable;
+mod input_parser;
 mod queryer;
-mod trimmable;
+mod string_utils;
 
 use ignoreable::Ignoreable;
+use input_parser::parse_input_args;
 use queryer::Queryer;
-use std::io::{stdin, stdout, BufRead, Read, Result, Write};
-use std::net::{IpAddr, SocketAddr};
-use std::str::FromStr;
-use trimmable::Trimmable;
+use std::io::{stdin, stdout, Result, Write};
+use std::net::ToSocketAddrs;
 use winapi::um::playsoundapi;
-
-//TODO: Perhaps parse a config file, instead of asking for the ip and username evertime? Or instead use cmd-line args?
 
 //for reference (rustification 2x duo): 51.195.130.177:28235
 fn main() -> Result<()> {
-	println!("Rust Player Checker v0.3");
+	loop {
+		println!("Rust Player Checker v0.4");
+		let cmd_result = parse_input_args(
+			stdin().lock(),
+			Queryer::new("192.168.1.2:0")?,
+			&[
+				(&["--dump"], |query, x| {
+					let server = x[0]
+						.to_socket_addrs()?
+						.next()
+						.expect("Ip could not be parsed.");
+					let players = query.get_players(&server)?;
+					dump_to_file(&players)
+				}),
+				(&["--print"], |query, x| {
+					let server = x[0]
+						.to_socket_addrs()?
+						.next()
+						.expect("Ip could not be parsed.");
+					let players = query.get_players(&server)?;
+					players.iter().for_each(|p| println!("{}", p));
+					Ok(())
+				}),
+				(&["", "-s", "-u"], |query, x| {
+					let server = x[0]
+						.to_socket_addrs()?
+						.next()
+						.expect("Ip could not be parsed.");
+					let name = x[1];
+					println!("Waiting for \"{}\" to join...", name);
+					//TODO: Make it possible to stop listening for a player by pressing a key or typing something.
+					loop {
+						let players = query.get_players(&server)?;
+						if players.iter().any(|x| x.get_name().unwrap() == name) {
+							println!("{} IS IN SERVER", name);
+							play_alert();
+						}
 
-	let out = stdout();
-	let inp = stdin();
-
-	let queryer = Queryer::new("192.168.1.2:0")?;
-
-	parse_input_args(
-		(inp.lock().by_ref(), out.lock().by_ref()),
-		queryer,
-		&[
-			//(&["--dump"], |io, query, x| {}),
-			(&["", "-s", "-u"], |_io, query, x| {
-				let server = str_to_socket_addr(x[0]);
-				let name = x[1];
-				println!("Waiting for \"{}\" to join...", name);
-				loop {
-					let players = query.get_players(&server).unwrap();
-					dump_to_file(&players).unwrap();
-					if players.iter().any(|x| x.get_name().unwrap() == name) {
-						println!("{} IS IN SERVER", name);
-						play_alert();
+						std::thread::sleep(std::time::Duration::from_millis(60000));
 					}
-
-					std::thread::sleep(std::time::Duration::from_millis(60000));
-				}
-			}),
-		],
-	)?;
-	Ok(())
-}
-
-type IoTuple<'a, I: BufRead, O: Write> = (&'a mut I, &'a mut O);
-type CallbackFunc<I: BufRead, O: Write> = fn(&mut IoTuple<I, O>, &Queryer, &[&str]);
-
-fn parse_input_args<I: BufRead, O: Write>(
-	mut io: IoTuple<I, O>,
-	queryer: Queryer,
-	funcs: &[(&[&str], CallbackFunc<I, O>)],
-) -> Result<()> {
-	let mut strbuf = String::with_capacity(10);
-	let read = io.0.read_line(&mut strbuf)?;
-	let input = &strbuf[..read];
-	for (args, func) in funcs {
-		if !input.contains(args[0]) {
-			continue;
+				}),
+			],
+		);
+		if let Err(err) = cmd_result {
+			let clear_timer = std::time::Duration::from_secs(5);
+			println!(
+				"Error encountered: {}\nClearing in {:?}...",
+				err, clear_timer
+			);
+			std::thread::sleep(clear_timer);
+			print!("\x1B[2J\x1B[1;1H"); //Clear terminal and set cursor to start.
+			stdout().flush().unwrap();
 		}
-
-		let mut vals = Vec::new();
-		for arg in *args {
-			if *arg == "" {
-				continue;
-			}
-			let mut splits = input.split(arg);
-			let val = splits
-				.nth(1)
-				.expect("Could not get value from split.")
-				.trim_start();
-
-			let mut start = 0;
-			let mut end = val
-				.find(&[' ', '\r', '\n', '\0'][..])
-				.unwrap_or_else(|| val.len());
-
-			let matches = val.matches('"').count();
-			if matches == 2 {
-				let first = val.find('"').unwrap() + 1;
-				let last = val.rfind('"').unwrap();
-				if first < end {
-					start = first;
-					end = last;
-				}
-			} else if matches == 1 || matches > 2 {
-				panic!("An argument was found specified with only one or more than 2 \" when 2 was needed.");
-			}
-
-			vals.push(&val[start..end]);
-		}
-
-		func(&mut io, &queryer, &vals);
 	}
-	Ok(())
 }
 
 fn dump_to_file(list: &[impl std::fmt::Display]) -> Result<()> {
@@ -103,22 +73,6 @@ fn dump_to_file(list: &[impl std::fmt::Display]) -> Result<()> {
 	let mut f = fs::File::create("./dbg_dump.txt")?;
 	list.iter().for_each(|x| writeln!(f, "{}", x).ignore());
 	Ok(())
-}
-
-fn str_to_socket_addr(inp: &str) -> SocketAddr {
-	let mut split = inp.split(':');
-	let ip_str = split.next().expect("Could not get ip from input.");
-	let mut port_str = split
-		.next()
-		.expect("Could not get port from input.")
-		.to_owned();
-	port_str.trim_newline();
-	SocketAddr::new(
-		IpAddr::from_str(ip_str).expect("Could not parse ip from input."),
-		port_str
-			.parse::<u16>()
-			.expect("Could not parse port number from input."),
-	)
 }
 
 #[cfg(windows)]

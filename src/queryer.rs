@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 use std::ffi::CString;
-use std::io::Result;
+use std::io::{Error, ErrorKind, Result};
 use std::net::{SocketAddr, UdpSocket};
 use std::time::Duration;
 
@@ -100,18 +100,24 @@ impl Queryer {
 			let res = self.udp.recv_from(&mut buf);
 			if let Ok((read, addr)) = res {
 				if addr != *server_addr {
-					println!("Received packet from unknown server.");
+					println!("Received packet from unknown server. Trying again...");
 					continue;
 				}
 
 				if read < 1 {
-					panic!("Read was less than 1.");
+					return Err(Error::new(
+						ErrorKind::InvalidData,
+						"Read was less than 1. If this keep occuring, please contact developer.",
+					));
 				}
 
 				// Ignore first 4 bytes.
 				let header = u8::from_le_bytes(buf[4..5].try_into().unwrap());
 				if header != A2S_PLAYER_RESPONSE_HEADER {
-					panic!("A2S_PLAYERS response header was incorrect.");
+					return Err(Error::new(
+						ErrorKind::InvalidData,
+						"A2S_PLAYERS response header was incorrect, please contact developer.",
+					));
 				}
 
 				let player_count = u8::from_le_bytes(buf[5..6].try_into().unwrap());
@@ -153,10 +159,13 @@ impl Queryer {
 				}
 				return Ok(players);
 			} else {
-				panic!(
-					"Error occurred during A2S_PLAYERS response.\n {}",
-					res.unwrap_err()
-				);
+				return Err(Error::new(
+					ErrorKind::InvalidData,
+					format!(
+						"Error occurred during A2S_PLAYERS response:\n {}",
+						res.unwrap_err()
+					),
+				));
 			}
 		}
 	}

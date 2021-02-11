@@ -1,6 +1,6 @@
 [package]
 name = "rust_player_checker"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Frederik P. B. H. <frepbh@gmail.com>"]
 edition = "2018"
 
