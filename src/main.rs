@@ -15,7 +15,7 @@ use winapi::um::playsoundapi;
 #[cfg(all(windows, not(debug_assertions)))]
 use winapi::um::{consoleapi, errhandlingapi, processenv, winbase, wincon};
 
-const START_MSG: &str = "\x1B[1m\x1B[31mRust Player Checker v0.4";
+const START_MSG: &str = "\x1B[1m\x1B[31mRust Player Checker v0.4\x1B[0m";
 
 //for reference (rustification 2x duo): 51.195.130.177:28235
 fn main() -> Result<()> {
