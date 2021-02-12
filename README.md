@@ -12,6 +12,6 @@ Dumps all player-info to a file called dbg_dump.txt
 
 Prints every player in server to console.
 
-### **--listen** **-s** _address_ **-u** _steam-username_
+### **--listen** _address_ **-u** _steam-username_
 
 Listens for the specified player, and plays a sound when found.
