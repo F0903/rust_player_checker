@@ -8,13 +8,21 @@ use input_parser::parse_input_args;
 use queryer::Queryer;
 use std::io::{stdin, stdout, Result, Write};
 use std::net::ToSocketAddrs;
+
+#[cfg(windows)]
 use winapi::um::playsoundapi;
 
-const START_MSG: &str = "Rust Player Checker v0.4";
+#[cfg(all(windows, not(debug_assertions)))]
+use winapi::um::{consoleapi, errhandlingapi, processenv, winbase, wincon};
+
+const START_MSG: &str = "\x1B[1m\x1B[31mRust Player Checker v0.4";
 
 //for reference (rustification 2x duo): 51.195.130.177:28235
 fn main() -> Result<()> {
+	#[cfg(all(windows, not(debug_assertions)))]
+	set_win32_color();
 	println!("{}", START_MSG);
+
 	loop {
 		let cmd_result = parse_input_args(
 			stdin().lock(),
@@ -49,6 +57,7 @@ fn main() -> Result<()> {
 						let players = query.get_players(&server)?;
 						if players.iter().any(|x| x.get_name().unwrap() == name) {
 							println!("{} IS IN SERVER", name);
+							#[cfg(windows)]
 							play_alert();
 						}
 
@@ -84,5 +93,35 @@ fn play_alert() {
 			std::ptr::null_mut(),
 			playsoundapi::SND_MEMORY,
 		);
+	}
+}
+
+#[cfg(all(windows, not(debug_assertions)))]
+fn set_win32_color() {
+	// Set virtual console mode to use colors. (for win32)
+	unsafe {
+		let out = processenv::GetStdHandle(winbase::STD_OUTPUT_HANDLE);
+		let mut out_mode: u32 = 0;
+		if consoleapi::GetConsoleMode(out, &mut out_mode as *mut u32) == 0 {
+			let err = errhandlingapi::GetLastError();
+			println!("GetConsoleMode failed with err code {}", err);
+		}
+		out_mode |= wincon::ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+		if consoleapi::SetConsoleMode(out, out_mode) == 0 {
+			let err = errhandlingapi::GetLastError();
+			println!("SetConsoleMode failed with err code {}", err);
+		}
+
+		let inp = processenv::GetStdHandle(winbase::STD_INPUT_HANDLE);
+		let mut inp_mode: u32 = 0;
+		if consoleapi::GetConsoleMode(inp, &mut inp_mode as *mut u32) == 0 {
+			let err = errhandlingapi::GetLastError();
+			println!("GetConsoleMode failed with err code {}", err);
+		}
+		inp_mode |= wincon::ENABLE_VIRTUAL_TERMINAL_INPUT;
+		if consoleapi::SetConsoleMode(inp, inp_mode) == 0 {
+			let err = errhandlingapi::GetLastError();
+			println!("SetConsoleMode failed with err code {}", err);
+		}
 	}
 }
