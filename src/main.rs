@@ -17,13 +17,11 @@ use winapi::um::playsoundapi;
 #[cfg(all(windows, not(debug_assertions)))]
 use winapi::um::{consoleapi, errhandlingapi, processenv, winbase, wincon};
 
-const START_MSG: &str = "\x1B[1m\x1B[31mRust Player Checker v0.4\x1B[0m";
-
 //for reference (rustification 2x duo): 51.195.130.177:28235
 fn main() -> Result<()> {
 	#[cfg(all(windows, not(debug_assertions)))]
 	set_win32_color();
-	println!("{}", START_MSG);
+	print_start_text();
 
 	loop {
 		let cmd_result = parse_input_args(
@@ -92,11 +90,22 @@ fn main() -> Result<()> {
 			let clear_timer = std::time::Duration::from_secs(5);
 			println!("{}\nClearing in {:?}...", err, clear_timer);
 			std::thread::sleep(clear_timer);
-			print!("\x1B[2J\x1B[1;1H"); //Clear terminal and set cursor to start.
-			stdout().flush().unwrap();
-			println!("{}", START_MSG);
+			clear_terminal();
+			print_start_text();
 		}
 	}
+}
+
+fn clear_terminal() {
+	print!("\x1B[2J\x1B[1;1H"); //Clear terminal and set cursor to start.
+	stdout().flush().unwrap();
+}
+
+fn print_start_text() {
+	println!(
+		"\x1B[1m\x1B[31mRust Player Checker v{}\x1B[0m",
+		env!("CARGO_PKG_VERSION")
+	);
 }
 
 fn dump_to_file(list: &[impl std::fmt::Display]) -> Result<()> {
