@@ -15,3 +15,9 @@ Prints every player in server to console.
 ### **--listen** _address_ **-u** _steam-username_
 
 Listens for the specified player, and plays a sound when found.
+
+## Vars
+
+### \*recent
+
+Contains the last server address used. (stored in recent.txt)
