@@ -9,6 +9,7 @@ pub struct ReqArgs<'a>(pub ArgList<'a>); // Required args.
 pub struct OptArgs<'a>(pub Option<ArgList<'a>>); // Optional args.
 pub struct Replace<'a>(pub Option<(&'a str, ReplaceFunc)>); // Replace vars. (currently only supports one var for simplicitys sake, but its easy to add more.)
 
+//TODO: Refactor this method into a struct with optional args.
 pub fn parse_input_args(
 	mut inp: impl BufRead,
 	queryer: Queryer,
