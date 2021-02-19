@@ -16,8 +16,10 @@ Dumps all player-info to a file called dbg_dump.txt
 
 Prints every player in server to console.
 
-## Vars
+## Variables
 
 ### \*recent
 
 Contains the last server address used. (stored in recent.txt)
+
+_usage example: --print *recent_
