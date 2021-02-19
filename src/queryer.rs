@@ -116,7 +116,7 @@ impl Queryer {
 				if header != A2S_PLAYER_RESPONSE_HEADER {
 					return Err(Error::new(
 						ErrorKind::InvalidData,
-						"A2S_PLAYERS response header was incorrect, please contact developer.",
+						"A2S_PLAYERS response header was incorrect, please contact developer if this persists.",
 					));
 				}
 
