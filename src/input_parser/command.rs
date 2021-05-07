@@ -3,12 +3,12 @@ use std::any::Any;
 
 pub struct Command<'a> {
 	args: Vec<&'a str>,
-	callback: &'a CallbackFunc,
+	callback: CallbackFunc,
 	passthrough: Option<&'a dyn Any>,
 }
 
 impl<'a> Command<'a> {
-	pub fn new(callback: &'a CallbackFunc) -> Self {
+	pub fn new(callback: CallbackFunc) -> Self {
 		Command {
 			args: Vec::new(),
 			callback,
@@ -30,7 +30,7 @@ impl<'a> Command<'a> {
 		&self.args
 	}
 
-	pub fn get_callback(&self) -> &'a CallbackFunc {
+	pub fn get_callback(&self) -> CallbackFunc {
 		self.callback
 	}
 
