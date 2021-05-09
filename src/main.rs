@@ -104,7 +104,6 @@ fn print(arg_vals: &[&str], passthrough: Option<&dyn Any>) -> Result<()> {
 	cache_recent(server_str)
 }
 
-//for reference (rustification 2x duo): 51.195.130.177:28235
 fn main() -> Result<()> {
 	#[cfg(all(windows, not(debug_assertions)))]
 	set_color_mode();

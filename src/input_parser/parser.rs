@@ -96,7 +96,10 @@ impl<'a> InputParser<'a> {
 		let mut val = String::from(&val[start..end]);
 		// Parse replacement variables.
 		for rep in replacement_vars {
-			val = val.replace(rep.0, &rep.1()?);
+			let rep_res = &rep.1();
+			if let Ok(rep_val) = rep_res {
+				val = val.replace(rep.0, rep_val);
+			}
 		}
 
 		Ok(val)
