@@ -1,9 +1,14 @@
 use super::{command::Command, ReplaceFunc};
-use std::io::{BufRead, Error, ErrorKind, Result};
+use std::io::{Error, ErrorKind, Result};
+
+struct ReplacePair<'a> {
+	var_name: &'a str,
+	replace_callback: &'a ReplaceFunc,
+}
 
 pub struct InputParser<'a> {
 	commands: Vec<Command<'a>>,
-	replacement_vars: Vec<(&'a str, &'a ReplaceFunc)>,
+	replacement_vars: Vec<ReplacePair<'a>>,
 }
 
 impl<'a> InputParser<'a> {
@@ -19,22 +24,35 @@ impl<'a> InputParser<'a> {
 		self
 	}
 
-	pub fn add_replacement_var(mut self, var: &'a str, replace_callback: &'a ReplaceFunc) -> Self {
-		self.replacement_vars.push((var, replace_callback));
+	pub fn add_replacement_var(
+		mut self,
+		var_name: &'a str,
+		replace_callback: &'a ReplaceFunc,
+	) -> Self {
+		self.replacement_vars.push(ReplacePair {
+			var_name,
+			replace_callback,
+		});
 		self
 	}
 
-	pub fn parse(&self, mut input: impl BufRead) -> Result<()> {
+	pub fn parse_from_stdin(&self) -> Result<()> {
 		let mut strbuf = String::with_capacity(10);
-		let read = input.read_line(&mut strbuf)?;
-		let input = &strbuf[..read];
-		self.execute_commands(input)?;
+		let read;
+		{
+			read = std::io::stdin().read_line(&mut strbuf)?;
+		}
+		let content = &strbuf[..read];
+		self.execute_commands(content)?;
 		Ok(())
 	}
 
+	pub fn parse_from_string(&self, input: impl AsRef<str>) -> Result<()> {
+		self.execute_commands(input.as_ref())
+	}
+
 	fn execute_commands(&self, input: &str) -> Result<()> {
-		let cmds = &self.commands;
-		for cmd in cmds {
+		for cmd in &self.commands {
 			let mut contained_arg = false;
 			let args = &cmd.get_args();
 			let mut vals = Vec::<String>::with_capacity(args.len());
@@ -42,7 +60,7 @@ impl<'a> InputParser<'a> {
 				if !input.contains(arg) {
 					continue;
 				}
-				let arg_value = Self::parse_arg_value(input, arg, &self.replacement_vars)?;
+				let arg_value = self.parse_arg_value(input, arg)?;
 				vals.push(arg_value);
 				contained_arg = true;
 			}
@@ -57,13 +75,19 @@ impl<'a> InputParser<'a> {
 		Ok(())
 	}
 
-	fn parse_arg_value(
-		input: &str,
-		arg: &str,
-		replacement_vars: &[(&'a str, &'a ReplaceFunc)],
-	) -> Result<String> {
+	fn replace_with_vars(&self, input: &mut String) {
+		for rep in &self.replacement_vars {
+			let callback = rep.replace_callback;
+			let rep_res = callback();
+			if let Ok(rep_val) = rep_res {
+				*input = input.replace(rep.var_name, &rep_val);
+			}
+		}
+	}
+
+	fn parse_arg_value(&self, input: &str, arg: &str) -> Result<String> {
 		let mut splits = input.split(arg);
-		let val = splits
+		let arg_value = splits
 			.nth(1)
 			.ok_or_else(|| {
 				Error::new(
@@ -74,14 +98,14 @@ impl<'a> InputParser<'a> {
 			.trim_start();
 
 		let mut start = 0;
-		let mut end = val
+		let mut end = arg_value
 			.find(&[' ', '\r', '\n', '\0'][..])
-			.unwrap_or_else(|| val.len());
+			.unwrap_or_else(|| arg_value.len());
 
-		let matches = val.matches('"').count();
+		let matches = arg_value.matches('"').count();
 		if matches >= 2 {
-			let first = val.find('"').unwrap() + 1;
-			let last = val[first + 1..].find('"').unwrap() + 2;
+			let first = arg_value.find('"').unwrap() + 1;
+			let last = arg_value[first + 1..].find('"').unwrap() + 2;
 			if first < end {
 				start = first;
 				end = last;
@@ -93,15 +117,8 @@ impl<'a> InputParser<'a> {
 			));
 		}
 
-		let mut val = String::from(&val[start..end]);
-		// Parse replacement variables.
-		for rep in replacement_vars {
-			let rep_res = &rep.1();
-			if let Ok(rep_val) = rep_res {
-				val = val.replace(rep.0, rep_val);
-			}
-		}
-
-		Ok(val)
+		let mut final_arg_value = String::from(&arg_value[start..end]);
+		self.replace_with_vars(&mut final_arg_value);
+		Ok(final_arg_value)
 	}
 }

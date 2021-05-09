@@ -1,4 +1,4 @@
-use std::io::{ErrorKind, Result};
+use std::io::Result;
 use winreg::{enums, HKEY};
 
 const BASE_PATH: HKEY = enums::HKEY_CURRENT_USER;
