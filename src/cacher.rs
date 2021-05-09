@@ -2,7 +2,7 @@ use std::io::{ErrorKind, Result};
 use winreg::{enums, HKEY};
 
 const BASE_PATH: HKEY = enums::HKEY_CURRENT_USER;
-const KEY_PATH: &str = "SOFTWARE\\dr-downloader";
+const KEY_PATH: &str = "SOFTWARE\\rust_player_checker";
 
 pub fn get_recent() -> Result<String> {
 	let key = winreg::RegKey::predef(BASE_PATH).open_subkey(KEY_PATH)?;

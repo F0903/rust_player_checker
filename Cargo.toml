@@ -1,6 +1,6 @@
 [package]
 name = "rust_player_checker"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Frederik P. B. H. <frepbh@gmail.com>"]
 edition = "2018"
 
@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 
 [target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3.9", features = [
+winapi = { version = "^0.3", features = [
 	"playsoundapi",
 	"consoleapi",
 	"errhandlingapi",
