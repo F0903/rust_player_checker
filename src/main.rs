@@ -133,7 +133,6 @@ fn print(arg_vals: &[&str], passthrough: Option<&dyn Any>) -> Result<()> {
 fn main() -> Result<()> {
 	#[cfg(all(windows, not(debug_assertions)))]
 	set_color_mode();
-	print_start_text();
 
 	let query = Queryer::new("192.168.1.2:0")?;
 
@@ -166,6 +165,7 @@ fn main() -> Result<()> {
 		return Ok(());
 	}
 
+	print_start_text();
 	loop {
 		fprint!("-> ");
 		let cmd_result = parser.parse_from_stdin();
