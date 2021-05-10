@@ -7,7 +7,7 @@ use cacher::{cache_recent, get_recent};
 use input_parser::{Command, InputParser, ReplaceFunc};
 use queryer::Queryer;
 use std::any::*;
-use std::io::{stdin, stdout, Error, ErrorKind, Result, Write};
+use std::io::{stdin, Error, ErrorKind, Result};
 use std::net::ToSocketAddrs;
 use utils::{dbg_utils::dump_to_file, trimmable::StringTrimmable};
 
@@ -17,8 +17,7 @@ use utils::win_utils::play_alert;
 use utils::win_utils::set_color_mode;
 
 fn clear_terminal() {
-	print!("\x1B[2J\x1B[1;1H"); //Clear terminal and set cursor to start.
-	stdout().flush().unwrap();
+	fprint!("\x1B[2J\x1B[1;1H"); //Clear terminal and set cursor to start.
 }
 
 fn print_start_text() {
@@ -157,10 +156,11 @@ fn main() -> Result<()> {
 	let arg_len = args.len();
 	let has_args = arg_len > 1;
 	if has_args {
-		//TODO: Check if the first arg is ever the exe path.
-		let input = args.fold(String::with_capacity(arg_len * 5), |s, arg| {
-			s + &(arg + " ")
-		});
+		let input = args
+			.skip(1)
+			.fold(String::with_capacity(arg_len * 5), |s, arg| {
+				s + &(arg + " ")
+			});
 		parser.parse_from_string(input)?;
 		return Ok(());
 	}
