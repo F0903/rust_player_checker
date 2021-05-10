@@ -154,10 +154,14 @@ fn main() -> Result<()> {
 		.add_replacement_var("*recent", &(get_recent as ReplaceFunc));
 
 	// If program is called from commandline with args.
-	let mut args = std::env::args();
-	let has_args = args.len() > 1; // First arg is exe path, so check for second.
+	let args = std::env::args();
+	let arg_len = args.len();
+	let has_args = arg_len > 1;
 	if has_args {
-		let input = args.nth(1).unwrap();
+		//TODO: Check if the first arg is ever the exe path.
+		let input = args.fold(String::with_capacity(arg_len * 5), |s, arg| {
+			s + &(arg + " ")
+		});
 		parser.parse_from_string(input)?;
 		return Ok(());
 	}
