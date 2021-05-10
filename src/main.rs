@@ -49,36 +49,46 @@ fn listen(arg_vals: &[&str], passthrough: Option<&dyn Any>) -> Result<()> {
 		)
 	})?;
 
-	let mut should_stop = false;
-	crossbeam_utils::thread::scope(|s| {
+	use std::sync::atomic::{AtomicBool, Ordering};
+	use std::time::{Duration, Instant};
+
+	let should_stop = AtomicBool::new(false);
+	crossbeam_utils::thread::scope(|s| -> Result<()> {
 		s.spawn(|_| loop {
 			let mut strbuf = String::new();
 			stdin().read_line(&mut strbuf).ok();
-			should_stop = strbuf.trim_newline() == "--stop";
-			if should_stop {
+			let stop = strbuf.trim_newline() == "--stop";
+			should_stop.store(stop, Ordering::Relaxed);
+			if stop {
 				break;
 			}
 		});
+
+		const DELAY: Duration = Duration::from_secs(30);
+		let mut next_scan = Instant::now();
+		loop {
+			if should_stop.load(Ordering::Relaxed) {
+				fprintln!("Stopped listening...");
+				break Ok(());
+			}
+
+			if Instant::now() < next_scan {
+				std::thread::sleep(std::time::Duration::from_millis(1000));
+				continue;
+			}
+
+			let players = query.get_players(&server)?;
+			if players.iter().any(|x| x.get_name().unwrap() == name) {
+				fprintln!("{} IS IN SERVER", name);
+				for _i in 0..5 {
+					#[cfg(windows)]
+					play_alert(include_bytes!("../media/alert.wav"));
+				}
+			}
+			next_scan += DELAY;
+		}
 	})
-	.unwrap();
-
-	loop {
-		if should_stop {
-			fprintln!("Stopped listening...");
-			break;
-		}
-
-		let players = query.get_players(&server)?;
-		if players.iter().any(|x| x.get_name().unwrap() == name) {
-			clear_terminal();
-			fprintln!("{} IS IN SERVER", name);
-			#[cfg(windows)]
-			play_alert(include_bytes!("../media/alert.wav"));
-		}
-
-		std::thread::sleep(std::time::Duration::from_millis(30000));
-	}
-	Ok(())
+	.unwrap()
 }
 
 fn dump(arg_vals: &[&str], passthrough: Option<&dyn Any>) -> Result<()> {
