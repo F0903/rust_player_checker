@@ -2,6 +2,8 @@
 
 Checks if a player is playing on a specific Rust (the game) server, then plays an audio cue.
 
+_Note: some rust servers do not respond with usernames, but instead anonymous names from the streamer-mode._
+
 ## Commands
 
 ### **--listen** _address_ **-u** _steam-username_
