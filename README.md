@@ -6,7 +6,7 @@ _Note: some rust servers do not respond with usernames, but instead anonymous na
 
 ## Commands
 
-### **--listen** _address_ **-u** _steam-username_
+### **--listen** _address_ **-u** _username_
 
 Listens for the specified player, and plays a sound when found.
 
