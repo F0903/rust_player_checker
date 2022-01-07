@@ -133,7 +133,7 @@ fn main() -> Result<()> {
 	#[cfg(all(windows, not(debug_assertions)))]
 	set_color_mode();
 
-	let query = Queryer::new("192.168.1.2:0")?;
+	let query = Queryer::new("0.0.0.0:0")?;
 
 	let listen_command = Command::new(listen)
 		.add_arg("--listen")
